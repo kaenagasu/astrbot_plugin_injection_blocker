@@ -1,0 +1,5 @@
+name: astrbot_plugin_injection_blocker
+author: kaenagasu, 里见
+description: 拦截命中拦截词的消息并终止事件传播，防止文本注入；支持合并转发/聊天记录展开、引用原文检查、历史上下文注入清洗（sanitize/reject）及可选的本地 OCR 图片文字预检。拦截词通过 /pblock 命令动态管理。
+version: 1.6.1
+repo: https://github.com/kaenagasu/astrbot_plugin_injection_blocker

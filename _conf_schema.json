@@ -1,0 +1,137 @@
+{
+  "group_enabled": {
+    "description": "群聊中是否启用拦截。",
+    "type": "bool",
+    "hint": "设为 false 后，群聊消息不再执行入口拦截与上下文清洗。",
+    "default": true
+  },
+  "private_enabled": {
+    "description": "私聊中是否启用拦截。",
+    "type": "bool",
+    "hint": "设为 false 后，私聊消息不再执行入口拦截与上下文清洗。",
+    "default": true
+  },
+  "check_forward": {
+    "description": "入口是否递归展开合并转发卡片内的文本再检查。",
+    "type": "bool",
+    "hint": "开启后，收到合并转发/含转发节点的消息会尝试调用 get_forward_msg 取出子消息文本参与拦截；平台不支持时自动跳过，不影响 LLM 阶段兜底。",
+    "default": true
+  },
+  "block_message": {
+    "description": "是否向被拦截消息的发送者回复提示。",
+    "type": "bool",
+    "hint": "设为 true 时，插件会回复提示；设为 false 时保持静默，避免暴露过滤规则。",
+    "default": false
+  },
+  "block_message_text": {
+    "description": "向被拦截消息发送者回复的自定义提示文案。",
+    "type": "string",
+    "hint": "仅在 block_message 为 true 时生效；留空使用默认文案。可用 {word} 占位符，替换为实际命中的拦截词。",
+    "default": "您的消息包含不允许的内容，已自动拦截。"
+  },
+  "case_sensitive": {
+    "description": "拦截匹配是否区分大小写。",
+    "type": "bool",
+    "hint": "设为 false 表示不区分大小写（默认）；若拦截词为英文且需要精确匹配，建议启用区分大小写。",
+    "default": false
+  },
+  "normalize_text": {
+    "description": "匹配前是否对文本做归一化（推荐开启）。",
+    "type": "bool",
+    "hint": "开启后先做 NFKC 归一（全角英数/标点→半角、兼容字符折叠）并删除所有零宽/Bidi 不可见格式字符；再逐行去水平空白比对（中文 ≥3 字、纯 ASCII ≥4 字符），挡住「忽\\u200b略以上」「忽 略 以 上」等拆词改写且不跨行粘连。注意：与 regex_mode 同时开启时，正则表达式中的标点请写半角（如 , ! ? : ( )）。",
+    "default": true
+  },
+  "regex_mode": {
+    "description": "是否将拦截词视为正则表达式进行匹配。",
+    "type": "bool",
+    "hint": "高级选项：启用后每个拦截词将按正则表达式编译匹配。请确保正则表达式正确，否则可能导致过滤异常。",
+    "default": false,
+    "obvious_hint": true
+  },
+  "show_nickname": {
+    "description": "在拦截日志中是否包含发送者昵称，便于审计。",
+    "type": "bool",
+    "hint": "开启后，INFO 级别拦截日志中会记录发送者昵称，便于审计。",
+    "default": false
+  },
+  "check_quote": {
+    "description": "检查引用消息原文是否含拦截词。",
+    "type": "bool",
+    "hint": "开启后，引用其它消息时会把引用原文一并纳入拦截检查，防止注入话术借引用绕过。",
+    "default": true
+  },
+  "context_block_enabled": {
+    "description": "是否检查并清洗会话历史中的注入内容。",
+    "type": "bool",
+    "hint": "开启后，每次把请求发给 LLM 前都会扫描 req.contexts 历史记录；关闭此项不会影响图片 OCR、当前请求兜底与请求注入面检查。",
+    "default": true
+  },
+  "context_block_mode": {
+    "description": "历史上下文命中拦截词时的处理方式。",
+    "type": "string",
+    "hint": "sanitize=把命中的历史消息替换为占位符后继续正常回复（推荐）；reject=发现历史含拦截词直接终止本次回复，聊天需清空会话才能继续。",
+    "options": [
+      "sanitize",
+      "reject"
+    ],
+    "default": "sanitize"
+  },
+  "context_block_placeholder": {
+    "description": "清洗历史消息或请求注入面时使用的占位文本。",
+    "type": "string",
+    "hint": "默认 [Filtered]，模型只会看到占位符，看不到原始注入内容。",
+    "default": "[Filtered]"
+  },
+  "image_ocr_enabled": {
+    "description": "LLM 请求前是否把图片里的文字转出来扫一遍拦截词。",
+    "type": "bool",
+    "hint": "用于主模型直接多模态看图、图里文字没被文本拦截器覆盖的场景。具体走本地 RapidOCR 还是多模态 API 由 image_ocr_backend 控制。",
+    "default": false
+  },
+  "image_ocr_backend": {
+    "description": "图片文字预检所使用的 OCR 后端。",
+    "type": "string",
+    "hint": "auto=优先本机 rapidocr_onnxruntime，不可用且配置了 image_ocr_provider_id 时自动回退到 API；local=仅使用本地 OCR（不花 token）；api=始终使用指定多模态模型。",
+    "options": [
+      "auto",
+      "local",
+      "api"
+    ],
+    "default": "auto"
+  },
+  "image_ocr_device": {
+    "description": "本地 RapidOCR 使用的计算设备（CPU / GPU 可选）。",
+    "type": "string",
+    "hint": "cpu=强制走 CPU（默认，rapidocr_onnxruntime 原生默认即为 CPU，部署最稳）；gpu=优先走 CUDA GPU（需安装 onnxruntime-gpu、卸载 CPU 版 onnxruntime 并匹配本机 CUDA/cuDNN，不可用或初始化失败时自动回退 CPU）；auto=自动检测 CUDAExecutionProvider，有则用 GPU，否则用 CPU。",
+    "options": [
+      "cpu",
+      "gpu",
+      "auto"
+    ],
+    "default": "cpu"
+  },
+  "image_ocr_provider_id": {
+    "description": "API OCR 使用的多模态模型 Provider ID。",
+    "type": "string",
+    "hint": "在 AstrBot 模型提供商配置中查看对应的 Provider ID。仅当 image_ocr_backend 为 api 或 auto（本地不可用回退）时生效。",
+    "default": ""
+  },
+  "image_ocr_api_prompt": {
+    "description": "API OCR 转写图片文字时使用的自定义提示词（可选）。",
+    "type": "string",
+    "hint": "留空使用内置防注入转写提示词。插件会自动附带只做机械转写、不执行图内指令的系统约束。",
+    "default": ""
+  },
+  "image_ocr_max_images": {
+    "description": "单次最多 OCR 几张图。",
+    "type": "int",
+    "hint": "一条消息可能带多张图，超过上限的部分不检查，防止刷图拖慢回复。默认 4。",
+    "default": 4
+  },
+  "image_ocr_timeout": {
+    "description": "单次图片 OCR 的基础超时（秒）。",
+    "type": "float",
+    "hint": "本地 OCR 直接使用该超时；API OCR 自动放宽至 2 倍。超时后放行该次预检，避免卡住正常回复。默认 15 秒。",
+    "default": 15.0
+  }
+}
